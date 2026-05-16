@@ -93,3 +93,6 @@ class User(Base):
         secondary=user_roles,
         back_populates="users"
     )
+
+    assignments = relationship("UserCourseAssignment", back_populates="user")
+    password_hash = Column(String(255), nullable=False)

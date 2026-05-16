@@ -41,6 +41,8 @@ class Course(Base):
         cascade="all, delete-orphan"
     )
 
+    assignments = relationship("UserCourseAssignment", back_populates="course")
+
 class CoursePage(Base):
     __tablename__ = "course_pages"
 
