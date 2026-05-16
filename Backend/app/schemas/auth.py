@@ -1,11 +1,6 @@
+# app/schemas/auth.py
+
 from pydantic import BaseModel
-
-
-class RegisterRequest(BaseModel):
-    first_name: str
-    last_name: str
-    email: str
-    password: str
 
 
 class LoginRequest(BaseModel):
@@ -16,4 +11,3 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
