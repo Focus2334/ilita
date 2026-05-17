@@ -48,15 +48,19 @@ export default function AdminPage() {
   const [eventForm, setEventForm] = useState(emptyEvent);
   const [editId, setEditId] = useState(null);
 
-  const handleCourseSubmit = (e) => {
+  const handleCourseSubmit = async (e) => {
     e.preventDefault();
-    if (editId) {
-      updateCourse(editId, courseForm);
-      setEditId(null);
-    } else {
-      addCourse(courseForm);
+    try {
+      if (editId) {
+        await updateCourse(editId, courseForm);
+        setEditId(null);
+      } else {
+        await addCourse(courseForm);
+      }
+      setCourseForm(emptyCourse);
+    } catch (err) {
+      alert(err.message || 'Не удалось сохранить курс');
     }
-    setCourseForm(emptyCourse);
   };
 
   const handleSurveySubmit = (e) => {
@@ -217,7 +221,13 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="btn-sm delete"
-                      onClick={() => deleteCourse(c.id)}
+                      onClick={async () => {
+                        try {
+                          await deleteCourse(c.id);
+                        } catch (err) {
+                          alert(err.message || 'Не удалось удалить курс');
+                        }
+                      }}
                     >
                       Удалить
                     </button>

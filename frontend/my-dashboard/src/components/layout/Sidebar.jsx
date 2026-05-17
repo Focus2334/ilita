@@ -8,7 +8,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { defaultUser } from '../../data/seedData';
+import { useData } from '../../context/DataContext';
 
 const employeeNav = [
   { to: '/', icon: LayoutGrid, label: 'Главная' },
@@ -20,9 +20,10 @@ const employeeNav = [
 
 export default function Sidebar() {
   const { user, logout, isAdmin } = useAuth();
-  const displayName = isAdmin ? user?.name : defaultUser.name;
-  const initials = user?.initials || defaultUser.initials;
-  const level = defaultUser.level;
+  const { profile } = useData();
+  const displayName = user?.name || profile?.name || 'Пользователь';
+  const initials = user?.initials || profile?.initials || '?';
+  const level = profile?.level ?? 1;
 
   const navItems = isAdmin
     ? [{ to: '/admin', icon: Settings, label: 'Админ-панель' }]

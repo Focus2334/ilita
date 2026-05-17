@@ -1,16 +1,28 @@
 import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import { useData } from '../context/DataContext';
-import { defaultUser } from '../data/seedData';
 
 export default function HomePage() {
-  const { courses, events, activeSurvey } = useData();
-  const user = defaultUser;
+  const { courses, events, activeSurvey, profile, loading } = useData();
+  const user = profile;
+
+  if (loading || !user) {
+    return (
+      <>
+        <Header title="Главная" />
+        <div className="page-content">
+          <p>Загрузка…</p>
+        </div>
+      </>
+    );
+  }
 
   const activeCourses = courses.filter(
     (c) => !c.locked && c.status !== 'completed' && c.progress < 100,
   );
-  const xpPercent = Math.round((user.xp / user.xpToNext) * 100);
+  const xpPercent = user.xpToNext
+    ? Math.round((user.xp / user.xpToNext) * 100)
+    : 0;
 
   return (
     <>

@@ -9,9 +9,10 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = login(email, password);
+    setError('');
+    const result = await login(email, password);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -80,9 +81,7 @@ export default function LoginPage() {
           </form>
           <p className="login-footer">Нет доступа? Обратитесь к HR-менеджеру</p>
           <p className="login-hint">
-            Сотрудник: ivanov@company.ru / user
-            <br />
-            Админ: admin@company.ru / admin
+            Вход через API бэкенда (email и пароль из БД).
           </p>
         </div>
       </div>

@@ -21,7 +21,7 @@ const taskLabels = {
 export default function CourseDetailPage() {
   const { id } = useParams();
   const { courses } = useData();
-  const course = courses.find((c) => c.id === id);
+  const course = courses.find((c) => String(c.id) === String(id));
   const [expandedStage, setExpandedStage] = useState('s3');
 
   if (!course) {

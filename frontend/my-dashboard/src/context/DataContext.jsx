@@ -1,95 +1,139 @@
-﻿import { createContext, useContext, useState, useCallback } from 'react';
-import { defaultCourses, defaultSurveys, defaultEvents } from '../data/seedData';
-
-const STORAGE_KEY = 'adaptator-data';
-
-function loadData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  return { courses: defaultCourses, surveys: defaultSurveys, events: defaultEvents };
-}
+﻿import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { apiRequest, parseDurationDays } from '../api/client';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext(null);
 
+const emptyData = {
+  courses: [],
+  surveys: [],
+  events: [],
+  user: null,
+};
+
 export function DataProvider({ children }) {
-  const [data, setData] = useState(loadData);
+  const { user } = useAuth();
+  const [data, setData] = useState(emptyData);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const persist = useCallback((next) => {
-    setData(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
+  const reload = useCallback(async () => {
+    if (!user?.token) {
+      setData(emptyData);
+      return;
+    }
 
-  const addCourse = useCallback((course) => {
-    const id = String(Date.now());
-    persist({
-      ...data,
-      courses: [
-        ...data.courses,
-        {
-          id,
-          progress: 0,
-          currentStage: 0,
-          totalStages: Number(course.totalStages) || 3,
-          status: 'available',
-          locked: false,
-          tags: [course.mandatory ? 'Обязательный' : 'Доступен', course.category],
-          stages: [],
-          ...course,
-        },
-      ],
-    });
-  }, [data, persist]);
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = await apiRequest('/me/dashboard');
+      setData({
+        courses: payload.courses || [],
+        surveys: payload.surveys || [],
+        events: payload.events || [],
+        user: payload.user || null,
+      });
+    } catch (err) {
+      setError(err.message || 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.token]);
 
-  const updateCourse = useCallback((id, updates) => {
-    persist({
-      ...data,
-      courses: data.courses.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-    });
-  }, [data, persist]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
-  const deleteCourse = useCallback((id) => {
-    persist({ ...data, courses: data.courses.filter((c) => c.id !== id) });
-  }, [data, persist]);
+  const addCourse = useCallback(
+    async (course) => {
+      await apiRequest('/courses', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: course.title,
+          description: course.description,
+          duration_days: parseDurationDays(course.duration),
+        }),
+      });
+      await reload();
+    },
+    [reload],
+  );
+
+  const updateCourse = useCallback(
+    async (id, updates) => {
+      await apiRequest(`/courses/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: updates.title,
+          description: updates.description,
+          duration_days: parseDurationDays(updates.duration),
+        }),
+      });
+      await reload();
+    },
+    [reload],
+  );
+
+  const deleteCourse = useCallback(
+    async (id) => {
+      await apiRequest(`/courses/${id}`, { method: 'DELETE' });
+      await reload();
+    },
+    [reload],
+  );
 
   const addSurvey = useCallback((survey) => {
     const id = String(Date.now());
-    const updated = data.surveys.map((s) => ({ ...s, active: false }));
-    persist({
-      ...data,
-      surveys: [{ id, active: true, ...survey }, ...updated],
-    });
-  }, [data, persist]);
+    setData((prev) => ({
+      ...prev,
+      surveys: [
+        { id, active: true, ...survey },
+        ...prev.surveys.map((s) => ({ ...s, active: false })),
+      ],
+    }));
+  }, []);
 
   const updateSurvey = useCallback((id, updates) => {
-    persist({
-      ...data,
-      surveys: data.surveys.map((s) => (s.id === id ? { ...s, ...updates } : s)),
-    });
-  }, [data, persist]);
+    setData((prev) => ({
+      ...prev,
+      surveys: prev.surveys.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+    }));
+  }, []);
 
   const deleteSurvey = useCallback((id) => {
-    persist({ ...data, surveys: data.surveys.filter((s) => s.id !== id) });
-  }, [data, persist]);
+    setData((prev) => ({
+      ...prev,
+      surveys: prev.surveys.filter((s) => s.id !== id),
+    }));
+  }, []);
 
   const addEvent = useCallback((event) => {
     const id = String(Date.now());
-    persist({ ...data, events: [...data.events, { id, ...event }] });
-  }, [data, persist]);
+    setData((prev) => ({
+      ...prev,
+      events: [...prev.events, { id, ...event }],
+    }));
+  }, []);
 
   const updateEvent = useCallback((id, updates) => {
-    persist({
-      ...data,
-      events: data.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-    });
-  }, [data, persist]);
+    setData((prev) => ({
+      ...prev,
+      events: prev.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+    }));
+  }, []);
 
   const deleteEvent = useCallback((id) => {
-    persist({ ...data, events: data.events.filter((e) => e.id !== id) });
-  }, [data, persist]);
+    setData((prev) => ({
+      ...prev,
+      events: prev.events.filter((e) => e.id !== id),
+    }));
+  }, []);
 
   const activeSurvey = data.surveys.find((s) => s.active);
   const surveyHistory = data.surveys.filter((s) => !s.active);
@@ -100,6 +144,10 @@ export function DataProvider({ children }) {
         courses: data.courses,
         surveys: data.surveys,
         events: data.events,
+        profile: data.user,
+        loading,
+        error,
+        reload,
         activeSurvey,
         surveyHistory,
         addCourse,

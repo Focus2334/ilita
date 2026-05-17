@@ -8,7 +8,7 @@ import { getTagClass, getActionButton } from '../utils/courseHelpers';
 const FILTERS = ['Все', 'Обязательные', 'Введение', 'Технические', 'Soft Skills'];
 
 export default function CoursesPage() {
-  const { courses } = useData();
+  const { courses, profile } = useData();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('Все');
 
@@ -67,7 +67,9 @@ export default function CoursesPage() {
             <div className="progress-bar-fill" style={{ width: `${avgProgress}%` }} />
           </div>
           <div className="adaptation-meta">
-            <span>День 14 из 90</span>
+            <span>
+              День {profile?.adaptationDay ?? 14} из {profile?.adaptationTotal ?? 90}
+            </span>
             <span>Ожидаемое завершение: 31 июля 2026</span>
           </div>
         </div>

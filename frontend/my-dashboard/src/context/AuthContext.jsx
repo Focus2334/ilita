@@ -1,41 +1,71 @@
 ﻿import { createContext, useContext, useState, useCallback } from 'react';
+import { apiRequest } from '../api/client';
 
 const AuthContext = createContext(null);
 
-const USERS = {
-  'admin@company.ru': { password: 'admin', role: 'admin', name: 'Администратор', initials: 'АД' },
-  'ivanov@company.ru': { password: 'user', role: 'employee', name: 'Алексей Иванов', initials: 'АИ' },
-};
+const PRIVILEGED_ROLES = new Set(['admin', 'hr']);
+
+function buildSession(me, token) {
+  const name = `${me.first_name} ${me.last_name}`.trim();
+  const initials = `${me.first_name?.[0] || ''}${me.last_name?.[0] || ''}`.toUpperCase();
+  const isAdmin = (me.roles || []).some((role) => PRIVILEGED_ROLES.has(role));
+
+  return {
+    id: me.id,
+    email: me.email,
+    name,
+    initials,
+    roles: me.roles || [],
+    role: isAdmin ? 'admin' : 'employee',
+    token,
+  };
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('adaptator-user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('adaptator-user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const login = useCallback((email, password) => {
-    const account = USERS[email.toLowerCase()];
-    if (!account || account.password !== password) {
-      return { ok: false, error: 'Неверный email или пароль' };
+  const login = useCallback(async (email, password) => {
+    try {
+      const tokenData = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const me = await apiRequest('/auth/me', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      const session = buildSession(me, tokenData.access_token);
+      setUser(session);
+      localStorage.setItem('adaptator-user', JSON.stringify(session));
+      return { ok: true, role: session.role };
+    } catch (err) {
+      return { ok: false, error: err.message || 'Неверный email или пароль' };
     }
-    const session = {
-      email: email.toLowerCase(),
-      role: account.role,
-      name: account.name,
-      initials: account.initials,
-    };
-    setUser(session);
-    localStorage.setItem('adaptator-user', JSON.stringify(session));
-    return { ok: true, role: account.role };
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('adaptator-user');
+    localStorage.removeItem('adaptator-data');
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isAdmin: user?.role === 'admin',
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

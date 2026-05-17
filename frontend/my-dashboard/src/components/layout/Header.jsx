@@ -1,12 +1,13 @@
 ﻿import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { defaultUser } from '../../data/seedData';
+import { useData } from '../../context/DataContext';
 
 export default function Header({ title }) {
   const { user } = useAuth();
+  const { profile } = useData();
   const navigate = useNavigate();
-  const initials = user?.initials || defaultUser.initials;
+  const initials = user?.initials || profile?.initials || '?';
 
   return (
     <header className="page-header">
@@ -15,6 +16,7 @@ export default function Header({ title }) {
         <button type="button" aria-label="Уведомления">
           <Bell size={22} />
         </button>
+        
         <div 
           className="avatar" 
           onClick={() => navigate('/profile')} 

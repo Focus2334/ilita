@@ -1,6 +1,5 @@
 ﻿import Header from '../components/layout/Header';
 import { useData } from '../context/DataContext';
-import { defaultUser } from '../data/seedData';
 
 const achievements = [
   { title: 'Быстрый старт', desc: 'Завершите первый курс за 3 дня' },
@@ -26,9 +25,23 @@ const levels = [
 ];
 
 export default function ProfilePage() {
-  const { courses } = useData();
-  const user = defaultUser;
-  const xpPercent = Math.round((user.xp / user.xpToNext) * 100);
+  const { courses, profile, loading } = useData();
+  const user = profile;
+
+  if (loading || !user) {
+    return (
+      <>
+        <Header title="Мой профиль" />
+        <div className="page-content">
+          <p>Загрузка…</p>
+        </div>
+      </>
+    );
+  }
+
+  const xpPercent = user.xpToNext
+    ? Math.round((user.xp / user.xpToNext) * 100)
+    : 0;
 
   const completedCourses = courses.filter(
     (c) => c.status === 'completed' || c.progress >= 95,
