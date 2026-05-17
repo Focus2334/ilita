@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
+from app.db.models.user import User
+from app.schemas.progress import MyCourseProgressRead
+from app.crud.progress import get_user_courses_progress
 from app.db.session import get_db
 from app.db.models.company import Team
 from app.db.models.role import Role
@@ -15,6 +18,8 @@ from app.crud.users import (
     get_users,
     remove_role_from_user,
 )
+from app.core.deps import get_current_user
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -98,3 +103,10 @@ def unassign_role_from_user(
 
     remove_role_from_user(db, user, role)
     return user.roles
+
+@router.get("/{user_id}/courses", response_model=list[MyCourseProgressRead])
+def user_courses_progress(
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    return get_user_courses_progress(db, user_id)
