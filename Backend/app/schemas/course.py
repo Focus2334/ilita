@@ -7,6 +7,12 @@ class CourseCreate(BaseModel):
     duration_days: int = 14
 
 
+class CourseUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    duration_days: int | None = None
+
+
 class CourseRead(BaseModel):
     id: int
     title: str

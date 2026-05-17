@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.deps import get_current_user
 from app.schemas.auth import LoginRequest, TokenResponse
-from app.schemas.user import UserRead
+from app.schemas.user import UserMeRead
 from app.crud.auth import authenticate_user
 from app.core.security import create_access_token
 
@@ -45,6 +45,12 @@ def token(
     return _issue_token(user)
 
 
-@router.get("/me", response_model=UserRead)
+@router.get("/me", response_model=UserMeRead)
 def me(user=Depends(get_current_user)):
-    return user
+    return UserMeRead(
+        id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        roles=[role.name for role in user.roles],
+    )

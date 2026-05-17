@@ -23,3 +23,7 @@ class UserRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserMeRead(UserRead):
+    roles: list[str] = []

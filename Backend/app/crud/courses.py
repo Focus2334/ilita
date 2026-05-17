@@ -22,6 +22,18 @@ def get_courses(db: Session):
     return db.query(Course).order_by(Course.id).all()
 
 
+def update_course(db: Session, course: Course, data):
+    if data.title is not None:
+        course.title = data.title
+    if data.description is not None:
+        course.description = data.description
+    if data.duration_days is not None:
+        course.duration_days = data.duration_days
+    db.commit()
+    db.refresh(course)
+    return course
+
+
 def create_course(db: Session, data: CourseCreate):
     course = Course(
         title=data.title,

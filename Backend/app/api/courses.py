@@ -10,6 +10,7 @@ from app.schemas.course import (
     CoursePageCreate,
     CoursePageRead,
     CourseRead,
+    CourseUpdate,
     PageBlockCreate,
     PageBlockRead,
 )
@@ -25,6 +26,7 @@ from app.crud.courses import (
     get_course_page,
     get_page_block,
     get_courses,
+    update_course,
 )
 from app.crud.progress import (
     build_course_progress,
@@ -96,6 +98,22 @@ def view_page(
         raise HTTPException(status_code=404, detail="Page not found")
     mark_page_viewed(db, current_user, course, page_id)
     return build_course_progress(db, current_user.id, course)
+
+
+@router.patch(
+    "/{course_id}",
+    response_model=CourseRead,
+    dependencies=[Depends(require_admin_or_hr)],
+)
+def patch_course(
+    course_id: int,
+    data: CourseUpdate,
+    db: Session = Depends(get_db),
+):
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return update_course(db, course, data)
 
 
 @router.get("/{course_id}", response_model=CourseDetailRead)
