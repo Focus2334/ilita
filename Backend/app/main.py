@@ -1,3 +1,5 @@
+import os
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,14 +16,22 @@ from app.api.chat import router as chat_router
 from app.chat.websocket import router as chat_ws_router
 from app.core.deps import require_auth
 
-app = FastAPI(title="LMS MVP")
+app = FastAPI(title="LMS MVP", redirect_slashes=False)
+
+_cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=_cors_origins,
+    # Любой localhost / 127.0.0.1 с портом (Vite, preview и т.д.)
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
