@@ -1,4 +1,5 @@
 ﻿import { Bell } from 'lucide-react';
+import { MessageCircleMore } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -16,7 +17,9 @@ export default function Header({ title }) {
         <button type="button" aria-label="Уведомления">
           <Bell size={22} />
         </button>
-        
+        <button type="button" aria-label="Уведомления">
+          <MessageCircleMore size={22} />
+        </button>
         <div 
           className="avatar" 
           onClick={() => navigate('/profile')} 
