@@ -6,3 +6,4 @@ from .company import *
 from .course import *
 from .progress import *
 from .user_course_assignment import UserCourseAssignment
+from .mentor_student import MentorStudent

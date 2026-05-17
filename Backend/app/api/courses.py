@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.core.deps import require_admin_or_hr
+from app.db.models.user import User
+from app.core.deps import get_current_user, require_admin_or_hr
 from app.schemas.course import (
     CourseCreate,
     CourseDetailRead,
@@ -12,6 +13,7 @@ from app.schemas.course import (
     PageBlockCreate,
     PageBlockRead,
 )
+from app.schemas.progress import CourseProgressRead
 from app.crud.courses import (
     create_course,
     create_course_page,
@@ -23,6 +25,11 @@ from app.crud.courses import (
     get_course_page,
     get_page_block,
     get_courses,
+)
+from app.crud.progress import (
+    build_course_progress,
+    mark_page_viewed,
+    start_course,
 )
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
@@ -43,6 +50,52 @@ def _sort_course_tree(course):
     for page in course.pages:
         page.blocks.sort(key=lambda block: block.position)
     return course
+
+
+@router.post("/{course_id}/start", response_model=CourseProgressRead, tags=["Courses"])
+def start_course_endpoint(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    start_course(db, current_user, course)
+    return build_course_progress(db, current_user.id, course)
+
+
+@router.get("/{course_id}/progress", response_model=CourseProgressRead, tags=["Courses"])
+def get_course_progress(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return build_course_progress(db, current_user.id, course)
+
+
+@router.post(
+    "/{course_id}/pages/{page_id}/view",
+    response_model=CourseProgressRead,
+    tags=["Courses"],
+)
+def view_page(
+    course_id: int,
+    page_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    page = get_course_page(db, course_id, page_id)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    mark_page_viewed(db, current_user, course, page_id)
+    return build_course_progress(db, current_user.id, course)
 
 
 @router.get("/{course_id}", response_model=CourseDetailRead)
