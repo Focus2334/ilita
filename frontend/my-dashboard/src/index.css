@@ -437,6 +437,105 @@ textarea {
   flex: 1;
 }
 
+.chat-widget-wrapper {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Основное окно чата */
+.chat-window {
+  width: 320px;
+  height: 450px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  
+  /* Настройки анимации */
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  visibility: hidden;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Класс для показа окна */
+.chat-window.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+/* Внутренности чата */
+.chat-header {
+  background-color: #007bff;
+  color: white;
+  padding: 15px;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-header h4 { margin: 0; font-size: 16px; }
+.close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+
+.chat-body {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  color: #333;
+}
+
+.chat-footer {
+  padding: 15px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+}
+
+.chat-footer input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.chat-footer button {
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Кнопка-триггер */
+.chat-toggle-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.chat-toggle-btn:hover {
+  transform: scale(1.05);
+}
+
+
 /* Cards */
 .card {
   background: var(--white);
