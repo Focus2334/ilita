@@ -5,8 +5,28 @@
   useEffect,
   useState,
 } from 'react';
-import { apiRequest, parseDurationDays } from '../api/client';
+import { getMe } from '../api/auth';
+import { getDashboard } from '../api/dashboard';
+import * as coursesApi from '../api/courses';
+import { mapAdminCourses, mergeCatalogWithProgress } from '../api/courseMappers';
 import { useAuth } from './AuthContext';
+
+function profileFromMe(me) {
+  const name = `${me.first_name} ${me.last_name}`.trim();
+  return {
+    name,
+    initials: `${me.first_name?.[0] || ''}${me.last_name?.[0] || ''}`.toUpperCase(),
+    email: me.email,
+    level: 1,
+    xp: 0,
+    xpToNext: 200,
+    adaptationDay: 1,
+    adaptationTotal: 90,
+    streak: 0,
+    achievements: 0,
+    startDate: new Date().toLocaleDateString('ru-RU'),
+  };
+}
 
 const DataContext = createContext(null);
 
@@ -21,8 +41,10 @@ export function DataProvider({ children }) {
   const { user } = useAuth();
   const [data, setData] = useState(emptyData);
   const [loading, setLoading] = useState(false);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  /** GET /me/dashboard — профиль, опросы, события */
   const reload = useCallback(async () => {
     if (!user?.token) {
       setData(emptyData);
@@ -32,62 +54,97 @@ export function DataProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const payload = await apiRequest('/me/dashboard');
-      setData({
-        courses: payload.courses || [],
+      const payload = await getDashboard();
+      setData((prev) => ({
+        ...prev,
         surveys: payload.surveys || [],
         events: payload.events || [],
         user: payload.user || null,
-      });
+      }));
     } catch (err) {
-      setError(err.message || 'Не удалось загрузить данные');
+      if (err.status === 404) {
+        const me = await getMe();
+        setData((prev) => ({
+          ...prev,
+          surveys: [],
+          events: [],
+          user: profileFromMe(me),
+        }));
+      } else {
+        setError(err.message || 'Не удалось загрузить данные');
+      }
     } finally {
       setLoading(false);
     }
   }, [user?.token]);
 
+  /** GET /courses + GET /me/courses (сотрудник) или GET /courses (админ) */
+  const loadCourses = useCallback(async () => {
+    if (!user?.token) {
+      setData((prev) => ({ ...prev, courses: [] }));
+      return;
+    }
+
+    setCoursesLoading(true);
+    try {
+      if (user.role === 'admin') {
+        const catalog = await coursesApi.listCourses();
+        setData((prev) => ({ ...prev, courses: mapAdminCourses(catalog) }));
+      } else {
+        const [catalog, progress] = await Promise.all([
+          coursesApi.listCourses(),
+          coursesApi.listMyCoursesProgress(),
+        ]);
+        setData((prev) => ({
+          ...prev,
+          courses: mergeCatalogWithProgress(catalog, progress),
+        }));
+      }
+    } catch (err) {
+      setError(err.message || 'Не удалось загрузить курсы');
+    } finally {
+      setCoursesLoading(false);
+    }
+  }, [user?.token, user?.role]);
+
   useEffect(() => {
     reload();
-  }, [reload]);
+    loadCourses();
+  }, [reload, loadCourses]);
 
   const addCourse = useCallback(
     async (course) => {
-      await apiRequest('/courses', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: course.title,
-          description: course.description,
-          duration_days: parseDurationDays(course.duration),
-        }),
+      await coursesApi.createCourse({
+        title: course.title,
+        description: course.description,
+        duration: course.duration,
       });
-      await reload();
+      await loadCourses();
     },
-    [reload],
+    [loadCourses],
   );
 
   const updateCourse = useCallback(
     async (id, updates) => {
-      await apiRequest(`/courses/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          title: updates.title,
-          description: updates.description,
-          duration_days: parseDurationDays(updates.duration),
-        }),
+      await coursesApi.updateCourse(id, {
+        title: updates.title,
+        description: updates.description,
+        duration: updates.duration,
       });
-      await reload();
+      await loadCourses();
     },
-    [reload],
+    [loadCourses],
   );
 
   const deleteCourse = useCallback(
     async (id) => {
-      await apiRequest(`/courses/${id}`, { method: 'DELETE' });
-      await reload();
+      await coursesApi.deleteCourse(id);
+      await loadCourses();
     },
-    [reload],
+    [loadCourses],
   );
 
+  // Опросы и мероприятия: в API только моки внутри GET /me/dashboard, отдельных эндпоинтов нет
   const addSurvey = useCallback((survey) => {
     const id = String(Date.now());
     setData((prev) => ({
@@ -96,13 +153,6 @@ export function DataProvider({ children }) {
         { id, active: true, ...survey },
         ...prev.surveys.map((s) => ({ ...s, active: false })),
       ],
-    }));
-  }, []);
-
-  const updateSurvey = useCallback((id, updates) => {
-    setData((prev) => ({
-      ...prev,
-      surveys: prev.surveys.map((s) => (s.id === id ? { ...s, ...updates } : s)),
     }));
   }, []);
 
@@ -118,13 +168,6 @@ export function DataProvider({ children }) {
     setData((prev) => ({
       ...prev,
       events: [...prev.events, { id, ...event }],
-    }));
-  }, []);
-
-  const updateEvent = useCallback((id, updates) => {
-    setData((prev) => ({
-      ...prev,
-      events: prev.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
     }));
   }, []);
 
@@ -146,18 +189,18 @@ export function DataProvider({ children }) {
         events: data.events,
         profile: data.user,
         loading,
+        coursesLoading,
         error,
         reload,
+        loadCourses,
         activeSurvey,
         surveyHistory,
         addCourse,
         updateCourse,
         deleteCourse,
         addSurvey,
-        updateSurvey,
         deleteSurvey,
         addEvent,
-        updateEvent,
         deleteEvent,
       }}
     >

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+﻿import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Lock } from 'lucide-react';
 import Header from '../components/layout/Header';
@@ -8,9 +8,13 @@ import { getTagClass, getActionButton } from '../utils/courseHelpers';
 const FILTERS = ['Все', 'Обязательные', 'Введение', 'Технические', 'Soft Skills'];
 
 export default function CoursesPage() {
-  const { courses, profile } = useData();
+  const { courses, profile, coursesLoading, loadCourses } = useData();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('Все');
+
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
   const filtered = useMemo(() => {
     return courses.filter((c) => {
@@ -35,6 +39,17 @@ export default function CoursesPage() {
   const avgProgress = Math.round(
     courses.reduce((s, c) => s + c.progress, 0) / Math.max(courses.length, 1),
   );
+
+  if (coursesLoading && courses.length === 0) {
+    return (
+      <>
+        <Header title="Курсы" />
+        <div className="page-content">
+          <p>Загрузка…</p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

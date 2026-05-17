@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+// В dev по умолчанию /api — тот же origin, запросы проксирует Vite (см. vite.config.js).
+// Прямой URL на :8000 даёт CORS: localhost:5173 ≠ 127.0.0.1:8000.
+const API_BASE =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? '/api' : 'http://127.0.0.1:8000');
 
 export function getToken() {
   try {
@@ -10,7 +14,22 @@ export function getToken() {
   }
 }
 
+/** FastAPI редиректит /courses → /courses/ на абсолютный URL — ломает прокси и CORS */
+function normalizeApiPath(path) {
+  const [pathname, query = ''] = path.split('?');
+  const qs = query ? `?${query}` : '';
+
+  if (pathname === '/courses') {
+    return `/courses/${qs}`;
+  }
+  if (pathname === '/users') {
+    return `/users/${qs}`;
+  }
+  return path;
+}
+
 export async function apiRequest(path, options = {}) {
+  const url = `${API_BASE}${normalizeApiPath(path)}`;
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -21,7 +40,7 @@ export async function apiRequest(path, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });

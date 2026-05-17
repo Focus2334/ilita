@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useCallback } from 'react';
-import { apiRequest } from '../api/client';
+import * as authApi from '../api/auth';
 
 const AuthContext = createContext(null);
 
@@ -33,14 +33,13 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     try {
-      const tokenData = await apiRequest('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
+      const tokenData = await authApi.login(email, password);
+      localStorage.setItem(
+        'adaptator-user',
+        JSON.stringify({ token: tokenData.access_token }),
+      );
 
-      const me = await apiRequest('/auth/me', {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      });
+      const me = await authApi.getMe();
 
       const session = buildSession(me, tokenData.access_token);
       setUser(session);

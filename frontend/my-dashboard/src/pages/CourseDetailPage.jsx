@@ -2,7 +2,8 @@
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Lock } from 'lucide-react';
 import Header from '../components/layout/Header';
-import { useData } from '../context/DataContext';
+import { useCourseDetail } from '../hooks/useCourseDetail';
+import { getActionButton } from '../utils/courseHelpers';
 
 const taskBtnClass = {
   video: 'video',
@@ -20,16 +21,27 @@ const taskLabels = {
 
 export default function CourseDetailPage() {
   const { id } = useParams();
-  const { courses } = useData();
-  const course = courses.find((c) => String(c.id) === String(id));
-  const [expandedStage, setExpandedStage] = useState('s3');
+  const { course, loading, error, startCourse, completeTask } = useCourseDetail(id);
+  const [expandedStage, setExpandedStage] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  if (!course) {
+  if (loading) {
     return (
       <>
         <Header title="Курс" />
         <div className="page-content">
-          <p>Курс не найден.</p>
+          <p>Загрузка…</p>
+        </div>
+      </>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <>
+        <Header title="Курс" />
+        <div className="page-content">
+          <p>{error || 'Курс не найден.'}</p>
           <Link to="/courses">← Назад к курсам</Link>
         </div>
       </>
@@ -42,6 +54,32 @@ export default function CourseDetailPage() {
     .flatMap((s) => s.tasks || [])
     .filter((t) => t.done).length;
   const totalTasks = stages.flatMap((s) => s.tasks || []).length;
+  const action = getActionButton(course);
+
+  const handlePrimaryAction = async () => {
+    setActionLoading(true);
+    try {
+      if (course.status === 'available') {
+        await startCourse();
+      }
+    } catch (err) {
+      alert(err.message || 'Не удалось начать курс');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTaskStart = async (task) => {
+    if (task.done || !task.pageId) return;
+    setActionLoading(true);
+    try {
+      await completeTask(id, task.pageId);
+    } catch (err) {
+      alert(err.message || 'Не удалось отметить прогресс');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <>
@@ -66,6 +104,17 @@ export default function CourseDetailPage() {
             <span>+{course.xp} XP</span>
             <span>{course.totalStages} этапа</span>
           </div>
+          {action && course.status === 'available' && (
+            <button
+              type="button"
+              className={`btn-action ${action.color}`}
+              style={{ marginTop: 16 }}
+              disabled={actionLoading}
+              onClick={handlePrimaryAction}
+            >
+              {actionLoading ? 'Загрузка…' : action.label}
+            </button>
+          )}
         </div>
 
         <div className="stat-grid">
@@ -82,11 +131,17 @@ export default function CourseDetailPage() {
             <div className="label">Задач</div>
           </div>
           <div className="stat-card">
-            <div className="value">2 / 4</div>
-            <div className="label">Контр. точек</div>
+            <div className="value">{course.progress}%</div>
+            <div className="label">Прогресс</div>
           </div>
           <div className="stat-card">
-            <div className="value">В процессе</div>
+            <div className="value">
+              {course.status === 'completed'
+                ? 'Завершён'
+                : course.status === 'in_progress'
+                  ? 'В процессе'
+                  : 'Доступен'}
+            </div>
             <div className="label">Статус</div>
           </div>
         </div>
@@ -185,7 +240,8 @@ export default function CourseDetailPage() {
                           <button
                             type="button"
                             className={`btn-task ${taskBtnClass[task.type]}`}
-                            disabled={task.done}
+                            disabled={task.done || actionLoading}
+                            onClick={() => handleTaskStart(task)}
                           >
                             {task.done ? 'Готово' : 'Начать'}
                           </button>

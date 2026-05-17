@@ -95,7 +95,7 @@ export default function AdminPage() {
       <div className="page-content admin-page">
         <h2>Управление контентом</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>
-          Добавляйте курсы, опросы и мероприятия — они сразу появятся у сотрудников.
+          Курсы сохраняются через API. Опросы и мероприятия пока только в интерфейсе (нет эндпоинтов на бекенде).
         </p>
 
         <div className="admin-tabs">
