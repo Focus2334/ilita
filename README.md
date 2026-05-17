@@ -50,8 +50,36 @@ python -m app.db.base
 python -m app.db.chat_base
 ```
 
-### 7. Run API
+### 7. Собрать фронтенд (один раз или после изменений UI)
+
+```bash
+cd frontend/my-dashboard
+npm install
+npm run build
+```
+
+### 8. Запуск (фронт + API на одном порту)
+
+Из каталога `Backend`:
 
 ```bash
 uvicorn app.main:app --reload
 ```
+
+Откройте в браузере: **http://localhost:8000/login** — интерфейс и авторизация (`POST /auth/login`).
+
+Проверка API без UI: http://localhost:8000/docs
+
+### Разработка UI с hot-reload (опционально)
+
+В двух терминалах:
+
+```bash
+# 1 — бэкенд
+cd Backend && uvicorn app.main:app --reload
+
+# 2 — Vite
+cd frontend/my-dashboard && npm run dev
+```
+
+Фронт: http://localhost:5173/login (запросы к API проксируются на :8000).

@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.frontend_static import FRONTEND_DIST, mount_frontend
 from app.api.users import router as users_router
 from app.api.courses import router as courses_router
 from app.api.assignments import router as assignments_router
@@ -28,9 +29,9 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def root():
-    return {"message": "LMS API is running 🚀"}
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "frontend_built": FRONTEND_DIST.is_dir()}
 
 
 app.include_router(users_router, dependencies=require_auth)
@@ -44,6 +45,16 @@ app.include_router(chat_router, dependencies=require_auth)
 app.include_router(auth_router)
 app.include_router(chat_ws_router)
 
+if not mount_frontend(app):
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    @app.get("/")
+    def root_without_frontend():
+        return {
+            "message": "LMS API is running",
+            "hint": "Соберите фронт: cd frontend/my-dashboard && npm install && npm run build",
+            "docs": "/docs",
+        }
+
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
