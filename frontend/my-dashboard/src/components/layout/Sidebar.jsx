@@ -6,6 +6,7 @@ import {
   ClipboardList,
   MessageCircle,
   Settings,
+  NotebookPen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -25,19 +26,22 @@ export default function Sidebar() {
   const initials = user?.initials || profile?.initials || '?';
   const level = profile?.level ?? 1;
 
-  const navItems = isAdmin
-    ? [{ to: '/admin', icon: Settings, label: 'Админ-панель' }]
-    : employeeNav;
+  const adminNav = [
+    { to: '/admin', icon: Settings, label: 'Админ-панель', end: true },
+    { to: '/admin/journal', icon: NotebookPen, label: 'Журнал', end: true },
+  ];
+
+  const navItems = isAdmin ? adminNav : employeeNav;
 
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">Адаптатор</div>
       <nav className="sidebar-nav">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={end ?? to === '/'}
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >
             <Icon size={20} />

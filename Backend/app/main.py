@@ -13,6 +13,7 @@ from app.api.progress import router as progress_router
 from app.api.dashboard import router as dashboard_router
 from app.api.mentorship import router as mentorship_router
 from app.api.chat import router as chat_router
+from app.api.journal import router as journal_router
 from app.chat.websocket import router as chat_ws_router
 from app.core.deps import require_auth
 
@@ -51,6 +52,7 @@ app.include_router(assignments_router, dependencies=require_auth)
 app.include_router(progress_router, dependencies=require_auth)
 app.include_router(dashboard_router, dependencies=require_auth)
 app.include_router(chat_router, dependencies=require_auth)
+app.include_router(journal_router, dependencies=require_auth)
 app.include_router(auth_router)
 app.include_router(chat_ws_router)
 

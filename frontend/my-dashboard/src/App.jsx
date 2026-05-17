@@ -10,6 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import SurveysPage from './pages/SurveysPage';
 import AssistantPage from './pages/AssistantPage';
 import AdminPage from './pages/AdminPage';
+import JournalPage from './pages/JournalPage';
 
 function ProtectedRoute({ children, adminOnly = false, employeeOnly = false }) {
   const { user, isAdmin } = useAuth();
@@ -91,6 +92,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute adminOnly>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/journal"
+          element={
+            <ProtectedRoute adminOnly>
+              <JournalPage />
             </ProtectedRoute>
           }
         />
